@@ -1,0 +1,287 @@
+import java.util.*;
+
+class Car {
+    private String licensePlate;
+    private String ownerName;
+    private String entryTime;
+    private String vehicleType;
+
+    public Car(String licensePlate, String ownerName, String entryTime, String vehicleType) {
+        this.licensePlate = licensePlate;
+        this.ownerName = ownerName;
+        this.entryTime = entryTime;
+        this.vehicleType = vehicleType;
+    }
+
+    public String getLicensePlate() {
+        return licensePlate;
+    }
+
+    @Override
+    public String toString() {
+        return "[" + licensePlate + " | " + ownerName + " | " + entryTime + " | " + vehicleType + "]";
+    }
+}
+
+class ParkingManager {
+
+    private Deque<Car> parkingStack = new ArrayDeque<>();
+    private long pushCount = 0;
+    private long popCount = 0;
+
+    public void enter(Car car) {
+        parkingStack.push(car);
+        pushCount++;
+    }
+
+    public boolean isEmpty() {
+        return parkingStack.isEmpty();
+    }
+
+    public int size() {
+        return parkingStack.size();
+    }
+
+    public void resetCounters() {
+        pushCount = 0;
+        popCount = 0;
+    }
+
+    public long getPushCount() {
+        return pushCount;
+    }
+
+    public long getPopCount() {
+        return popCount;
+    }
+
+    public void displayStack() {
+        if (parkingStack.isEmpty()) {
+            System.out.println("  (ลานจอดว่างเปล่า)");
+            return;
+        }
+        System.out.println("  ---- Top ----");
+        for (Car c : parkingStack) {
+            System.out.println("  " + c);
+        }
+        System.out.println("  --- Bottom ---");
+    }
+
+    public boolean removeCarIterative(String targetPlate) {
+        Deque<Car> temporaryStack = new ArrayDeque<>();
+
+        while (!parkingStack.isEmpty() && !parkingStack.peek().getLicensePlate().equals(targetPlate)) {
+            temporaryStack.push(parkingStack.pop());
+            popCount++;
+        }
+
+        if (parkingStack.isEmpty()) {
+            while (!temporaryStack.isEmpty()) {
+                parkingStack.push(temporaryStack.pop());
+                pushCount++;
+            }
+            return false;
+        }
+
+        parkingStack.pop();
+        popCount++;
+
+        while (!temporaryStack.isEmpty()) {
+            parkingStack.push(temporaryStack.pop());
+            pushCount++;
+        }
+
+        return true;
+    }
+
+    public boolean removeCarRecursive(String targetPlate) {
+        return removeCarRecursiveHelper(targetPlate);
+    }
+
+    private boolean removeCarRecursiveHelper(String targetPlate) {
+        if (parkingStack.isEmpty()) {
+            return false;
+        }
+
+        Car topCar = parkingStack.pop();
+        popCount++;
+
+        if (topCar.getLicensePlate().equals(targetPlate)) {
+            return true;
+        }
+
+        boolean found = removeCarRecursiveHelper(targetPlate);
+
+        parkingStack.push(topCar);
+        pushCount++;
+
+        return found;
+    }
+
+    // ✅ เพิ่ม Method นี้สำหรับคัดลอก State ของ Stack ไปจำลอง Test Case (ถูกหลัก OOP)
+    public ParkingManager copy() {
+        ParkingManager cloned = new ParkingManager();
+        // คัดลอกข้อมูลเข้า ArrayDeque ตัวใหม่ โดยยังคงลำดับเดิมไว้
+        cloned.parkingStack = new ArrayDeque<>(this.parkingStack);
+        return cloned;
+    }
+}
+
+public class SmartParking {
+
+    private static Scanner sc = new Scanner(System.in);
+    private static ParkingManager manager = new ParkingManager();
+
+    public static void main(String[] args) {
+        boolean running = true;
+
+        while (running) {
+            printMenu();
+            String choice = sc.nextLine().trim();
+
+            switch (choice) {
+                case "1":
+                    addCar();
+                    break;
+                case "2":
+                    removeCarMenu();
+                    break;
+                case "3":
+                    System.out.println("\nสถานะปัจจุบันของลานจอด:");
+                    manager.displayStack();
+                    break;
+                case "4":
+                    runAllTestCases();
+                    break;
+                case "0":
+                    running = false;
+                    System.out.println("ออกจากโปรแกรม");
+                    break;
+                default:
+                    System.out.println("!! กรุณาเลือกเมนูให้ถูกต้อง (0-4) !!");
+            }
+        }
+    }
+
+    private static void printMenu() {
+        System.out.println("\n===== Smart Parking System =====");
+        System.out.println("1. นำรถเข้าจอด (Push)");
+        System.out.println("2. นำรถออกตามทะเบียน (Remove Target)");
+        System.out.println("3. แสดงสถานะลานจอด");
+        System.out.println("4. รัน Test Cases ทั้งหมด (Normal, Best, Worst, Empty, etc.)");
+        System.out.println("0. ออกจากโปรแกรม");
+        System.out.print("เลือกเมนู: ");
+    }
+
+    private static void addCar() {
+        System.out.print("ทะเบียนรถ: ");
+        String plate = sc.nextLine().trim();
+
+        if (plate.isEmpty()) {
+            System.out.println("!! Error: ทะเบียนรถห้ามว่าง (Invalid Input) !!");
+            return;
+        }
+
+        System.out.print("ชื่อเจ้าของ: ");
+        String owner = sc.nextLine().trim();
+        System.out.print("เวลาเข้า: ");
+        String time = sc.nextLine().trim();
+        System.out.print("ประเภทรถ: ");
+        String type = sc.nextLine().trim();
+
+        manager.enter(new Car(plate, owner, time, type));
+        System.out.println("นำรถ " + plate + " เข้าจอดเรียบร้อย");
+    }
+
+    private static void removeCarMenu() {
+        if (manager.isEmpty()) {
+            System.out.println("!! ลานจอดว่างเปล่า ไม่มีรถให้นำออก !!");
+            return;
+        }
+
+        System.out.print("ทะเบียนรถเป้าหมาย: ");
+        String target = sc.nextLine().trim();
+
+        System.out.print("เลือกอัลกอริทึม (A = Iterative, B = Recursive): ");
+        String algo = sc.nextLine().trim().toUpperCase();
+
+        manager.resetCounters();
+        long start = System.nanoTime();
+        boolean result;
+
+        if (algo.equals("A")) {
+            result = manager.removeCarIterative(target);
+        } else if (algo.equals("B")) {
+            result = manager.removeCarRecursive(target);
+        } else {
+            System.out.println("!! กรุณาเลือก A หรือ B เท่านั้น !!");
+            return;
+        }
+
+        long end = System.nanoTime();
+
+        System.out.println(result ? "นำรถ " + target + " ออกสำเร็จ" : "ไม่พบรถทะเบียน " + target);
+        System.out.println("Push: " + manager.getPushCount() + " ครั้ง, Pop: " + manager.getPopCount() + " ครั้ง");
+        System.out.println("เวลาที่ใช้: " + (end - start) + " ns");
+    }
+    private static void runAllTestCases() {
+        System.out.println("\n======= เริ่มการรัน Test Cases อัตโนมัติ =======");
+        
+        System.out.println("\n[1. กรณี Invalid Input]");
+        System.out.println("จำลองการป้อนค่าว่าง -> ระบบแจ้งเตือน: !! Error: ทะเบียนรถห้ามว่าง (Invalid Input) !!");
+
+        System.out.println("\n[2. กรณี Stack ว่าง (Empty Stack)]");
+        ParkingManager emptyPm = new ParkingManager();
+        executeTest(emptyPm, "X-999", "ดึงรถจากลานที่ว่างเปล่า");
+
+        System.out.println("\n>> สร้างสถานะลานจอดจำลอง 4 คัน (A, B, C, D)");
+        System.out.println("   (Bottom) A -> B -> C -> D (Top)");
+
+        System.out.println("\n[3. กรณี Best Case]");
+        ParkingManager pmBest = createMockManager();
+        executeTest(pmBest, "D-444", "เป้าหมายอยู่บนสุด (D-444)");
+
+        System.out.println("\n[4. กรณี Normal Case]");
+        ParkingManager pmNormal = createMockManager();
+        executeTest(pmNormal, "C-333", "เป้าหมายอยู่ตรงกลาง (C-333)");
+
+        System.out.println("\n[5. กรณี Worst Case]");
+        ParkingManager pmWorst = createMockManager();
+        executeTest(pmWorst, "A-111", "เป้าหมายอยู่ล่างสุด (A-111)");
+
+        System.out.println("\n[6. กรณี ไม่พบเป้าหมาย (Target Not Found)]");
+        ParkingManager pmNotFound = createMockManager();
+        executeTest(pmNotFound, "Z-000", "ไม่มีทะเบียน Z-000 ในระบบ");
+
+        System.out.println("\n===============================================");
+    }
+
+    private static ParkingManager createMockManager() {
+        ParkingManager pm = new ParkingManager();
+        pm.enter(new Car("A-111", "สมชาย", "08:00", "รถยนต์"));
+        pm.enter(new Car("B-222", "สมหญิง", "08:15", "รถยนต์"));
+        pm.enter(new Car("C-333", "มานะ", "08:30", "มอเตอร์ไซค์"));
+        pm.enter(new Car("D-444", "มานี", "08:45", "รถยนต์"));
+        return pm;
+    }
+
+    private static void executeTest(ParkingManager pmBase, String target, String desc) {
+        System.out.println("--- Scenario: " + desc + " ---");
+        
+        // ทดสอบ Algorithm A 
+        ParkingManager pmA = pmBase.copy(); 
+        pmA.resetCounters();
+        long startA = System.nanoTime();
+        boolean resA = pmA.removeCarIterative(target);
+        long endA = System.nanoTime();
+        System.out.printf("  [Algo A - Iterative] ผลลัพธ์: %b | Pop: %d | Push: %d | เวลา: %d ns\n", resA, pmA.getPopCount(), pmA.getPushCount(), (endA - startA));
+
+        // ทดสอบ Algorithm B
+        ParkingManager pmB = pmBase.copy();
+        pmB.resetCounters();
+        long startB = System.nanoTime();
+        boolean resB = pmB.removeCarRecursive(target);
+        long endB = System.nanoTime();
+        System.out.printf("  [Algo B - Recursive] ผลลัพธ์: %b | Pop: %d | Push: %d | เวลา: %d ns\n", resB, pmB.getPopCount(), pmB.getPushCount(), (endB - startB));
+    }
+}
